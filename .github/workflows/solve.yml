@@ -1,0 +1,30 @@
+name: solve-nonogram
+on:
+  workflow_dispatch:
+    inputs:
+      budget:
+        description: "Per-board budget in seconds"
+        default: "900"
+jobs:
+  solve:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        board: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install solvers
+        run: pip install python-sat ortools
+      - name: Solve board ${{ matrix.board }}
+        run: python solve_board.py challenge.json ${{ matrix.board }} ${{ inputs.budget }}
+      - name: Upload answer
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: answer-board-${{ matrix.board }}
+          path: answer_board${{ matrix.board }}.json
+          if-no-files-found: ignore
