@@ -1,0 +1,41 @@
+name: bench-solvers
+on:
+  workflow_dispatch:
+    inputs:
+      budget:
+        description: "Per-job budget in seconds"
+        default: "900"
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { method: cadical, perm: 1 }
+          - { method: cadical, perm: 2 }
+          - { method: cadical, perm: 3 }
+          - { method: cadical, perm: 0 }
+          - { method: glucose, perm: 4 }
+          - { method: maplecm, perm: 5 }
+          - { method: cryptominisat, perm: 6 }
+          - { method: cpsat, perm: 0 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install solvers
+        run: |
+          pip install python-sat ortools
+          pip install cryptominisat || true
+      - name: Bench ${{ matrix.method }} perm ${{ matrix.perm }} on board 0
+        run: python bench_one.py ${{ matrix.method }} 0 ${{ inputs.budget }} ${{ matrix.perm }}
+      - name: Upload answer
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-${{ matrix.method }}-p${{ matrix.perm }}
+          path: answer_board0.json
+          if-no-files-found: ignore
